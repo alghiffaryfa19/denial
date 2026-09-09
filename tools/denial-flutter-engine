@@ -648,6 +648,14 @@ updated, replacements = re.subn(
 )
 if replacements != 1:
     raise SystemExit('could not disable the Flutter OpenJDK CIPD dependency')
+updated, replacements = re.subn(
+  r"('download_fuchsia_deps': )'host_os == \"linux\"',",
+  r"\1False,",
+  updated,
+  count=1,
+)
+if replacements != 1:
+  raise SystemExit('could not disable the Flutter Fuchsia dependencies')
 deps_path.write_text(updated)
 PY
     trap restore_deps EXIT
@@ -659,8 +667,6 @@ PY
       VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
       gclient sync --no-history --nohooks
   )
-  restore_deps
-  trap - EXIT
 
   [[ -x "$checkout_depot/gclient" ]] \
     || fail "synchronized depot_tools is missing: $checkout_depot"
@@ -671,6 +677,8 @@ PY
       VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
       gclient runhooks
   )
+  restore_deps
+  trap - EXIT
 
   checkout_matches_lock \
     "$flutter_revision" "$skia_revision" "$depot_revision" \
