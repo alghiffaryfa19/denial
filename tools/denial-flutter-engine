@@ -617,6 +617,41 @@ prepare_checkout() {
   printf 'Synchronizing Flutter dependencies for %s\n' \
     "${flutter_revision:0:12}"
   install -d -m 0700 "$VPYTHON_CACHE_ROOT"
+  deps_backup=''
+  restore_deps() {
+    if [[ -n "$deps_backup" && -f "$deps_backup" ]]; then
+      install -m 0644 "$deps_backup" "$CHECKOUT/DEPS"
+      rm -f -- "$deps_backup"
+      deps_backup=''
+    fi
+  }
+  if [[ "${DENIAL_FLUTTER_USE_SYSTEM_JDK:-0}" == 1 ]]; then
+    deps_backup="$(mktemp)"
+    cp -- "$CHECKOUT/DEPS" "$deps_backup"
+    python3 - "$CHECKOUT/DEPS" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+deps_path = Path(sys.argv[1])
+deps = deps_path.read_text()
+pattern = (
+    r"('engine/src/flutter/third_party/java/openjdk': \{.*?"
+    r"'dep_type': 'cipd',)"
+)
+updated, replacements = re.subn(
+    pattern,
+    r"\1\n    'condition': 'False',",
+    deps,
+    count=1,
+    flags=re.DOTALL,
+)
+if replacements != 1:
+    raise SystemExit('could not disable the Flutter OpenJDK CIPD dependency')
+deps_path.write_text(updated)
+PY
+    trap restore_deps EXIT
+  fi
   (
     cd "$CHECKOUT"
     PATH="$DEPOT_TOOLS/.cipd_bin:$DEPOT_TOOLS:$PATH" \
@@ -624,6 +659,8 @@ prepare_checkout() {
       VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
       gclient sync --no-history --nohooks
   )
+  restore_deps
+  trap - EXIT
 
   [[ -x "$checkout_depot/gclient" ]] \
     || fail "synchronized depot_tools is missing: $checkout_depot"
