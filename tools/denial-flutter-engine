@@ -37,6 +37,7 @@ case "$(uname -m)" in
   aarch64 | arm64)
     ENGINE_TARGET=linux-arm64
     HOST_TOOLS_TARGET=linux-arm64
+    GN_TARGET_ARGS=(--linux --linux-cpu=arm64)
     ;;
   *)
     printf 'denial-flutter-engine: unsupported host architecture: %s\n' \
@@ -44,6 +45,9 @@ case "$(uname -m)" in
     exit 1
     ;;
 esac
+if [[ "${ENGINE_TARGET:-}" == linux-x64 ]]; then
+  GN_TARGET_ARGS=()
+fi
 
 fail() {
   printf 'denial-flutter-engine: %s\n' "$*" >&2
@@ -729,6 +733,7 @@ build_artifacts() {
         DEPOT_TOOLS_UPDATE=0 \
         VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
         ./flutter/tools/gn \
+          "${GN_TARGET_ARGS[@]}" \
           --runtime-mode="$mode" \
           --enable-fontconfig \
           --out-dir="$BUILD_ROOT" \
@@ -833,6 +838,7 @@ refresh_metadata() {
         DEPOT_TOOLS_UPDATE=0 \
         VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
         ./flutter/tools/gn \
+          "${GN_TARGET_ARGS[@]}" \
           --runtime-mode="$mode" \
           --enable-fontconfig \
           --out-dir="$BUILD_ROOT" \
@@ -950,6 +956,7 @@ run_flutter_tests() {
       DEPOT_TOOLS_UPDATE=0 \
       VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
       ./flutter/tools/gn \
+        "${GN_TARGET_ARGS[@]}" \
         --runtime-mode=debug \
         --enable-fontconfig \
         --out-dir="$BUILD_ROOT" \
@@ -1016,6 +1023,7 @@ prepare_app_build() {
       DEPOT_TOOLS_UPDATE=0 \
       VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
       ./flutter/tools/gn \
+        "${GN_TARGET_ARGS[@]}" \
         --runtime-mode=release \
         --enable-fontconfig \
         --out-dir="$BUILD_ROOT" \
@@ -1087,6 +1095,7 @@ prepare_development_sdk() {
         DEPOT_TOOLS_UPDATE=0 \
         VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
         ./flutter/tools/gn \
+          "${GN_TARGET_ARGS[@]}" \
           --runtime-mode="$mode" \
           --enable-fontconfig \
           --out-dir="$BUILD_ROOT" \
