@@ -37,6 +37,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain none --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          toolchain="$(sed -n 's/^channel = "\([^"]*\)"$/\1/p' rust-toolchain.toml)"
+          test -n "$toolchain"
+          rustup toolchain install "$toolchain" --profile minimal
+          rustup component add --toolchain "$toolchain" rustfmt clippy
+          printf '%s\n' "$HOME/.cargo/bin" >>"$GITHUB_PATH"
+          rustc +"$toolchain" --version
+          cargo +"$toolchain" --version
+
       - name: Verify ARM64 build boundary
         shell: bash
         run: |
