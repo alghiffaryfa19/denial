@@ -10,6 +10,16 @@ STAGE_ROOT="${DENIAL_PACKAGE_STAGE_ROOT:-$PACKAGE_INPUT_ROOT/native}"
 PACKAGE_ROOT="${DENIAL_PC_PACKAGE_ROOT:-$BUILD_ROOT/packages}"
 WORK_ROOT="${DENIAL_PC_DEB_ROOT:-$BUILD_ROOT/debian-package}"
 PACKAGER="${DENIAL_PACKAGE_PACKAGER:-Doctor Logix <doctor.logix@gmail.com>}"
+DEBIAN_ARCHITECTURE="${DENIAL_PACKAGE_ARCHITECTURE:-$(dpkg --print-architecture)}"
+
+case "$DEBIAN_ARCHITECTURE" in
+  amd64 | arm64) ;;
+  *)
+    printf 'package-denial-deb: unsupported Debian architecture: %s\n' \
+      "$DEBIAN_ARCHITECTURE" >&2
+    exit 1
+    ;;
+esac
 
 if [[ "${DENIAL_PROMOTION_MODE:-0}" == 1 \
   && "${DENIAL_PACKAGE_SKIP_STAGE:-0}" != 1 ]]; then
@@ -63,7 +73,7 @@ build_deb() {
   {
     printf 'Package: %s\n' "$package_name"
     printf 'Version: %s-%s\n' "$PACKAGE_VERSION" "$PACKAGE_RELEASE"
-    printf 'Architecture: amd64\n'
+    printf 'Architecture: %s\n' "$DEBIAN_ARCHITECTURE"
     printf 'Maintainer: %s\n' "$PACKAGER"
     printf 'Installed-Size: %s\n' "$installed_size"
     printf '%s\n' "$control_body"
@@ -75,8 +85,8 @@ build_deb() {
       --build "$package_root" "$output"
 }
 
-engine_package="$PACKAGE_ROOT/denial-flutter-engine_${PACKAGE_VERSION}-${PACKAGE_RELEASE}_amd64.deb"
-denial_package="$PACKAGE_ROOT/denial_${PACKAGE_VERSION}-${PACKAGE_RELEASE}_amd64.deb"
+engine_package="$PACKAGE_ROOT/denial-flutter-engine_${PACKAGE_VERSION}-${PACKAGE_RELEASE}_${DEBIAN_ARCHITECTURE}.deb"
+denial_package="$PACKAGE_ROOT/denial_${PACKAGE_VERSION}-${PACKAGE_RELEASE}_${DEBIAN_ARCHITECTURE}.deb"
 
 engine_control="$(cat <<EOF
 Section: libs
@@ -123,7 +133,7 @@ installed_size="$(du -sk --apparent-size "$STAGE_ROOT/denial" | cut -f1)"
 {
   printf 'Package: denial\n'
   printf 'Version: %s-%s\n' "$PACKAGE_VERSION" "$PACKAGE_RELEASE"
-  printf 'Architecture: amd64\n'
+  printf 'Architecture: %s\n' "$DEBIAN_ARCHITECTURE"
   printf 'Maintainer: %s\n' "$PACKAGER"
   printf 'Installed-Size: %s\n' "$installed_size"
   printf '%s\n' "$denial_control"

@@ -14,7 +14,16 @@ CONTROL_BINARY="${DENIAL_PC_CONTROL_BINARY:-$RUST_TARGET/release/denialctl}"
 PORTAL_BINARY="${DENIAL_PC_PORTAL_BINARY:-$RUST_TARGET/release/denial-portal}"
 BUNDLE="${DENIAL_PC_BUNDLE:-$PACKAGE_INPUT_ROOT/bundle}"
 BUNDLE_ASSEMBLY="${DENIAL_PC_BUNDLE_ASSEMBLY:-$PACKAGE_INPUT_ROOT/flutter-release}"
-SETTINGS_BUNDLE="${DENIAL_PC_SETTINGS_BUNDLE:-$ROOT/settings_app/build/linux/x64/release/bundle}"
+case "$(uname -m)" in
+  x86_64) FLUTTER_ARCH=x64 ;;
+  aarch64 | arm64) FLUTTER_ARCH=arm64 ;;
+  *)
+    printf 'stage-denial-runtime: unsupported host architecture: %s\n' \
+      "$(uname -m)" >&2
+    exit 1
+    ;;
+esac
+SETTINGS_BUNDLE="${DENIAL_PC_SETTINGS_BUNDLE:-$ROOT/settings_app/build/linux/$FLUTTER_ARCH/release/bundle}"
 PACKAGE_RELEASE="${DENIAL_PACKAGE_RELEASE:-1}"
 RELEASE_TAG="${DENIAL_RELEASE_TAG:-}"
 REQUESTED_PACKAGE_VERSION="${DENIAL_PACKAGE_VERSION:-}"
@@ -169,7 +178,7 @@ engine_root="$temporary_stage/denial-flutter-engine"
 denial_root="$temporary_stage/denial"
 install -d -m 0755 "$engine_root" "$denial_root"
 
-engine_source_root="$ROOT/prebuilt/flutter-engine/linux-x64-release"
+engine_source_root="$ROOT/prebuilt/flutter-engine/linux-$FLUTTER_ARCH-release"
 source_lock="$ROOT/prebuilt/flutter-engine/SOURCE_LOCK.json"
 expected_engine_sha256="$(cut -d' ' -f1 < "$engine_source_root/libflutter_engine.so.sha256")"
 actual_engine_sha256="$(sha256sum "$BUNDLE/lib/libflutter_engine.so" | cut -d' ' -f1)"

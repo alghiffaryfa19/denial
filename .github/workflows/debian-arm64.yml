@@ -1,0 +1,96 @@
+name: Build Debian 13 ARM64 package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: denial-debian-arm64
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Debian 13 ARM64 packages
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 240
+    container:
+      image: debian:13
+
+    steps:
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install --yes \
+            bash build-essential ca-certificates clang curl dpkg-dev file \
+            git jq libclang-dev libdrm-dev libegl-dev libfontconfig1-dev \
+            libgbm-dev libinput-dev libpam0g-dev libseat-dev libudev-dev \
+            libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev ninja-build \
+            pkg-config python3 rsync sudo xwayland
+
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify ARM64 build boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(dpkg --print-architecture)" = arm64
+          test "$(uname -m)" = aarch64
+
+      - name: Prepare ARM64 engine metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in release debug profile; do
+            source_dir="prebuilt/flutter-engine/linux-x64-$mode"
+            target_dir="prebuilt/flutter-engine/linux-arm64-$mode"
+            cp -a "$source_dir" "$target_dir"
+            sed -i \
+              -e 's/host_cpu = "x64"/host_cpu = "arm64"/' \
+              -e 's/target_cpu = "x64"/target_cpu = "arm64"/' \
+              -e 's/dart_target_arch = "x64"/dart_target_arch = "arm64"/' \
+              "$target_dir/args.gn"
+            rm -f "$target_dir/libflutter_engine.so" \
+              "$target_dir/libflutter_engine.so.sha256"
+          done
+
+      - name: Build Debian packages
+        shell: bash
+        env:
+          DENIAL_PACKAGE_ARCHITECTURE: arm64
+          DENIAL_PACKAGE_RELEASE: "0"
+        run: |
+          set -euo pipefail
+          tools/denial-pc bootstrap
+          tools/denial-flutter-engine refresh-metadata
+          tools/denial-pc debian-package
+
+      - name: Verify and upload Debian packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_root="${DENIAL_PC_PACKAGE_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/denial/pc-build/packages}"
+          mapfile -t packages < <(
+            find "$package_root" -maxdepth 1 -type f -name '*_arm64.deb' -print | sort
+          )
+          test "${#packages[@]}" -eq 2
+          for package in "${packages[@]}"; do
+            test "$(dpkg-deb --field "$package" Architecture)" = arm64
+          done
+          mkdir -p "$RUNNER_TEMP/denial-debian-arm64"
+          cp -- "${packages[@]}" "$RUNNER_TEMP/denial-debian-arm64/"
+
+      - name: Upload Debian 13 ARM64 packages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: denial-debian-13-arm64-${{ github.sha }}
+          path: ${{ runner.temp }}/denial-debian-arm64/*.deb
+          if-no-files-found: error
+          retention-days: 14

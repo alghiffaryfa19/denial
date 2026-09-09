@@ -63,16 +63,26 @@ LOCAL_ENGINE_TARGET="denial_host_release"
 
 COMPOSITOR_ROOT="$ROOT/compositor"
 MANIFEST="$COMPOSITOR_ROOT/Cargo.toml"
-BUNDLE="${DENIAL_PC_BUNDLE:-$ROOT/dart_shell/build/linux/x64/release/bundle}"
+HOST_MACHINE="$(uname -m)"
+case "$HOST_MACHINE" in
+    x86_64) FLUTTER_ARCH="x64"; DEBIAN_ARCHITECTURE="amd64" ;;
+    aarch64 | arm64) FLUTTER_ARCH="arm64"; DEBIAN_ARCHITECTURE="arm64" ;;
+    *)
+        printf 'denial-pc: unsupported host architecture: %s\n' \
+            "$HOST_MACHINE" >&2
+        exit 1
+        ;;
+esac
+BUNDLE="${DENIAL_PC_BUNDLE:-$ROOT/dart_shell/build/linux/$FLUTTER_ARCH/release/bundle}"
 BUNDLE_ASSEMBLY="${DENIAL_PC_BUNDLE_ASSEMBLY:-$BUILD_ROOT/flutter/release}"
-SETTINGS_BUNDLE="${DENIAL_PC_SETTINGS_BUNDLE:-$ROOT/settings_app/build/linux/x64/release/bundle}"
+SETTINGS_BUNDLE="${DENIAL_PC_SETTINGS_BUNDLE:-$ROOT/settings_app/build/linux/$FLUTTER_ARCH/release/bundle}"
 SETTINGS_BINARY="${DENIAL_SETTINGS_BINARY:-$SETTINGS_BUNDLE/denial-settings}"
 SETTINGS_DESKTOP_SOURCE="$ROOT/packaging/arch/dev.denial.Settings.desktop"
 USER_DATA_HOME="${XDG_DATA_HOME:-${HOME:?HOME is required}/.local/share}"
 SETTINGS_DESKTOP_FILE="${DENIAL_SETTINGS_DESKTOP_FILE:-$USER_DATA_HOME/applications/dev.denial.Settings.desktop}"
 ENGINE="${DENIAL_PC_ENGINE:-$BUNDLE/lib/libflutter_engine.so}"
-ICU_DATA="$FLUTTER_SDK_ROOT/bin/cache/artifacts/engine/linux-x64/icudtl.dat"
-PREBUILT_ENGINE_DIR="$ROOT/prebuilt/flutter-engine/linux-x64-release"
+ICU_DATA="$FLUTTER_SDK_ROOT/bin/cache/artifacts/engine/linux-$FLUTTER_ARCH/icudtl.dat"
+PREBUILT_ENGINE_DIR="$ROOT/prebuilt/flutter-engine/linux-$FLUTTER_ARCH-release"
 PREBUILT_ENGINE="${DENIAL_PC_ENGINE_SOURCE:-$PREBUILT_ENGINE_DIR/libflutter_engine.so}"
 PREBUILT_ENGINE_SHA256="$PREBUILT_ENGINE_DIR/libflutter_engine.so.sha256"
 PREBUILT_ENGINE_REVISION="$PREBUILT_ENGINE_DIR/ENGINE_REVISION"
@@ -621,11 +631,11 @@ build_bundle() (
             --output="$assembly" \
             -dTargetFile=lib/main.dart \
             -dBuildMode=release \
-            -dTargetPlatform=linux-x64 \
+            -dTargetPlatform=linux-$FLUTTER_ARCH \
             -dDartObfuscation=false \
             -dTrackWidgetCreation=true \
             -dTreeShakeIcons=true \
-            release_bundle_linux-x64_assets
+            release_bundle_linux-${FLUTTER_ARCH}_assets
     )
     require_file "$assembly/lib/libapp.so"
     require_file "$ICU_DATA"

@@ -66,6 +66,15 @@ settings_app/build/linux/x64/release/bundle
 
 Build only that client with `tools/denial-pc settings`.
 
+## Debian 13 ARM64 GitHub build
+
+The manually dispatched `Build Debian 13 ARM64 package` workflow runs on a
+native ARM64 runner inside Debian 13 and uploads the two resulting `.deb`
+files as an Actions artifact. It builds the Flutter engine for ARM64 before
+building the compositor package, so it does not produce an x86-64 package
+with an ARM64 filename. Start it from the Actions tab and download the
+artifact named `denial-debian-13-arm64-<commit>`.
+
 Set `DENIAL_PC_DEPENDENCY_ROOT`, `DENIAL_PC_BUILD_ROOT`, or
 `DENIAL_PC_RUST_TARGET` to place the corresponding caches elsewhere.
 
