@@ -611,12 +611,16 @@ prepare_checkout() {
   printf 'Synchronizing Flutter dependencies for %s\n' \
     "${flutter_revision:0:12}"
   install -d -m 0700 "$VPYTHON_CACHE_ROOT"
+  gclient_sync_args=(--no-history --nohooks)
+  if [[ "${DENIAL_FLUTTER_USE_SYSTEM_JDK:-0}" == 1 ]]; then
+    gclient_sync_args+=(--custom-var=download_jdk=False)
+  fi
   (
     cd "$CHECKOUT"
     PATH="$DEPOT_TOOLS/.cipd_bin:$DEPOT_TOOLS:$PATH" \
       DEPOT_TOOLS_UPDATE=0 \
       VPYTHON_VIRTUALENV_ROOT="$VPYTHON_CACHE_ROOT" \
-      gclient sync --no-history --nohooks
+      gclient sync "${gclient_sync_args[@]}"
   )
 
   [[ -x "$checkout_depot/gclient" ]] \
