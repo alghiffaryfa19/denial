@@ -522,15 +522,15 @@ write_gclient_config() {
       '    "name": ".",' \
       '    "safesync_url": "",'
     printf '    "url": "%s",\n' "$repository"
+    if [[ "${DENIAL_FLUTTER_USE_SYSTEM_JDK:-0}" == 1 ]]; then
+      printf '%s\n' \
+        '    "custom_vars": {' \
+        '      "download_jdk": False,' \
+        '    },'
+    fi
     printf '%s\n' \
       '  },' \
       ']'
-    if [[ "${DENIAL_FLUTTER_USE_SYSTEM_JDK:-0}" == 1 ]]; then
-      printf '%s\n' \
-        'custom_vars = {' \
-        '  "download_jdk": False,' \
-        '}'
-    fi
   } >"$CHECKOUT/.gclient"
 }
 
