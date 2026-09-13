@@ -25,7 +25,7 @@ jobs:
           set -euo pipefail
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install --yes \
-            bash build-essential unzip ca-certificates clang cmake curl default-jdk-headless dpkg-dev file \
+            bash build-essential unzip ca-certificates libarchive-tools clang cmake curl default-jdk-headless dpkg-dev file \
             git jq libclang-dev libdrm-dev libegl-dev libfontconfig1-dev \
             libgbm-dev libgtk-3-dev libinput-dev liblzma-dev libpam0g-dev libseat-dev libudev-dev \
             libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev ninja-build \
