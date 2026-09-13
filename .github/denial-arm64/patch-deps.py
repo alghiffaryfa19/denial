@@ -2,8 +2,6 @@
 import sys
 import re
 
-FUCHSIA_VAR_OLD = "'download_fuchsia_deps': 'host_os == \"linux\"',\n"
-FUCHSIA_VAR_NEW = "'download_fuchsia_deps': False,\n"
 
 
 def main():
@@ -18,9 +16,11 @@ def main():
     
     s = openjdk_pattern.sub("", s, count=1)
 
-    if FUCHSIA_VAR_OLD not in s:
+    fuchsia_pattern = re.compile(r"('download_fuchsia_deps':\s*)[^,\n]+,")
+    if not fuchsia_pattern.search(s):
         sys.exit(f"patch-deps: fuchsia var anchor not found in {path}")
-    s = s.replace(FUCHSIA_VAR_OLD, FUCHSIA_VAR_NEW, 1)
+    
+    s = fuchsia_pattern.sub(r"\g<1>False,", s, count=1)
 
     with open(path, "w", encoding="utf-8") as f:
         f.write(s)
