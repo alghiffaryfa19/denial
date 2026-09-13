@@ -201,42 +201,6 @@ if patched(stage):
 else:
     s = stage.read_text()
 
-    root_anchor = 'ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"\n'
-    if root_anchor not in s:
-        sys.exit("patch: stage-denial-runtime ROOT anchor not found")
-    host_cpu = (
-        'HOST_CPU="${DENIAL_HOST_CPU:-}"\n'
-        'case "${HOST_CPU:-$(uname -m)}" in\n'
-        "  aarch64|arm64) HOST_CPU=arm64 ;;\n"
-        "  x86_64|amd64) HOST_CPU=x64 ;;\n"
-        "  *)\n"
-        '    printf \'stage-denial-runtime: unsupported host CPU: %s\\n\' "${HOST_CPU:-$(uname -m)}" >&2\n'
-        "    exit 1\n"
-        "    ;;\n"
-        "esac\n"
-    )
-    s = s.replace(root_anchor, root_anchor + host_cpu, 1)
-
-    settings_anchor = (
-        'SETTINGS_BUNDLE="${DENIAL_PC_SETTINGS_BUNDLE:-$ROOT/settings_app/build/linux/x64/release/bundle}"\n'
-    )
-    if settings_anchor not in s:
-        sys.exit("patch: stage-denial-runtime SETTINGS_BUNDLE anchor not found")
-    s = s.replace(
-        settings_anchor,
-        'SETTINGS_BUNDLE="${DENIAL_PC_SETTINGS_BUNDLE:-$ROOT/settings_app/build/linux/${HOST_CPU}/release/bundle}"\n',
-        1,
-    )
-
-    engine_anchor = 'engine_source_root="$ROOT/prebuilt/flutter-engine/linux-x64-release"\n'
-    if engine_anchor not in s:
-        sys.exit("patch: stage-denial-runtime engine_source_root anchor not found")
-    s = s.replace(
-        engine_anchor,
-        'engine_source_root="$ROOT/prebuilt/flutter-engine/linux-${HOST_CPU}-release"\n',
-        1,
-    )
-
     sha_anchor = (
         'expected_engine_sha256="$(cut -d\' \' -f1 < "$engine_source_root/libflutter_engine.so.sha256")"\n'
         'actual_engine_sha256="$(sha256sum "$BUNDLE/lib/libflutter_engine.so" | cut -d\' \' -f1)"\n'
@@ -286,11 +250,21 @@ else:
     s = verify.read_text()
     anchor = '  [[ "$package_arch" == x86_64 ]] \\\n'
     if anchor not in s:
-        sys.exit("patch: verify-denial-native-package-metadata arch anchor not found")
+        sys.exit("patch: verify-denial-native-package-metadata rpm arch anchor not found")
     s = s.replace(
         anchor,
         '  [[ "$package_arch" == x86_64 || "$package_arch" == aarch64 ]] \\\n',
         1,
     )
-    mark(verify, s + marker, "patched verify-denial-native-package-metadata (accepts aarch64 rpm arch)")
+
+    deb_anchor = '  [[ "$package_arch" == amd64 ]] \\\n'
+    if deb_anchor not in s:
+        sys.exit("patch: verify-denial-native-package-metadata deb arch anchor not found")
+    s = s.replace(
+        deb_anchor,
+        '  [[ "$package_arch" == amd64 || "$package_arch" == arm64 ]] \\\n',
+        1,
+    )
+
+    mark(verify, s + marker, "patched verify-denial-native-package-metadata (accepts aarch64 rpm arch and arm64 deb arch)")
 PY
