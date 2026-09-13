@@ -45,7 +45,7 @@ else:
             break
     indent = s[chain_start : s.find("\n", chain_start)]
     indent = indent[: len(indent) - len(indent.lstrip())]
-    hook = indent + 'python3 "$ROOT/../.github/denial-arm64/patch-deps.py" "$CHECKOUT/DEPS"\n'
+    hook = indent + 'python3 "$ROOT/.github/denial-arm64/patch-deps.py" "$CHECKOUT/DEPS"\n'
     s = s[:chain_start] + hook + s[chain_start:]
 
     m2 = re.search(r"^([ \t]*)gclient runhooks\s*$", s, re.M)
