@@ -81,6 +81,9 @@ jobs:
               "$target_dir/libflutter_engine.so.sha256"
           done
 
+      - name: "Patch Denial tooling for ARM64"
+        run: bash .github/denial-arm64/patch-denial-arm64.sh denial
+
       - name: Build Debian packages
         shell: bash
         env:
