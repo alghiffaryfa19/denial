@@ -82,7 +82,7 @@ jobs:
           done
 
       - name: "Patch Denial tooling for ARM64"
-        run: bash .github/denial-arm64/patch-denial-arm64.sh denial
+        run: bash .github/denial-arm64/patch-denial-arm64.sh .
 
       - name: Build Debian packages
         shell: bash
